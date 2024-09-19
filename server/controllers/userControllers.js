@@ -100,15 +100,53 @@ export const cancelBooking = asyncHandler(async (req, res) => {
   }
 });
 
-
-const toFav=asyncHandler(async(req,res)=>{
-  const {email}=req.body;
-  const {rid}=req.params
+export const toFav = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+  const { rid } = req.params;
+  
   try {
-const user =await prisma.user.findUnique({
-  where:{email}
-})
+    // Find the user by email
+    const user = await prisma.user.findUnique({
+      where: { email }
+    });
+    
+    // Check if the residence ID is already in the user's favorites
+    if (user.favResidenciesId.includes(rid)) {
+      // Remove the residence ID if it exists
+      const updateUser = await prisma.user.update({
+        where: { email },
+        data: {
+          favResidenciesId: {
+            set: user.favResidenciesId.filter((id) => id !== rid), // Correct way to filter and update
+          }
+        }
+      });
+      res.send({ message: "removed from fav", user: updateUser });
+    } else {
+      // Add the residence ID if it doesn't exist
+      const updateUser = await prisma.user.update({
+        where: { email },
+        data: {
+          favResidenciesId: {
+            push: rid, // Use `set` with the updated array
+          }
+        }
+      });
+      res.send({ message: "added to favourites", user: updateUser });
+    }
   } catch (error) {
     throw new Error(error.message);
   }
 });
+
+export const getAllFav=asyncHandler(async(req,res)=>{
+const {email}=req.body;
+try {
+  const favResendencies=await prisma.user.findUnique({
+    where:{email},
+    select:{favResidenciesId:true}
+  })
+} catch (error) {
+  throw new Error(error.message);
+}
+})
